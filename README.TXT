@@ -11,6 +11,8 @@ API REST desarrollada con Django y Django REST Framework para gestionar tareas c
 pip install django djangorestframework
 
 ## Aplicar migraciones
+(Hay una tarea que no tiene ID pero aún así esta creada, para poder borrarla solo se tiene que borrar el archivo ToDoList.db
+y hacer los comandos que siguen)
 ``` en terminal de visual  studio
 python manage.py migrate
 
@@ -30,7 +32,8 @@ python manage.py runserver
 
 ## Credenciales de API
 Autenticación Basic Auth:
-`` Esto lo va a pedir solo cuando se necesite hacer una busqueda de una tarea
+`` Esto lo va a pedir solo cuando se necesite hacer una busqueda de una tarea y posiblemente solo lo va a pedir una vez, esto porque se queda
+guardada en el navegador, pero cuando se cierre el navegador por completo y se vuelva abrir, la va a pedir de nuevo 
 Usuario: admin
 Contraseña: password123
 ``Esta se pone en el cmd con los curls
@@ -72,3 +75,4 @@ para este se debe de ingresar en la carpeta de aplicacions/api y entrar en views
 volver a comentar para que sirva 
 Error 500 - Error interno (forzado):
 curl -X POST http://127.0.0.1:8000/tasks/ -H "Authorization: Basic YWRtaW46cGFzc3dvcmQxMjM=" -H "Content-Type: application/json" -d "JSON_INVALIDO"
+
