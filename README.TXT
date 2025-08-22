@@ -3,6 +3,7 @@ API REST desarrollada con Django y Django REST Framework para gestionar tareas c
 # Requisitos Previos
 
 ## Software necesario:
+- Abrir con visual studio code
 - Python 3.8 o superior
 - pip 
 
@@ -75,4 +76,5 @@ para este se debe de ingresar en la carpeta de aplicacions/api y entrar en views
 volver a comentar para que sirva 
 Error 500 - Error interno (forzado):
 curl -X POST http://127.0.0.1:8000/tasks/ -H "Authorization: Basic YWRtaW46cGFzc3dvcmQxMjM=" -H "Content-Type: application/json" -d "JSON_INVALIDO"
+
 
