@@ -1,0 +1,244 @@
+{% extends "./base.html" %}
+
+{% block title %} Gestión de tareas API {% endblock %}
+
+{% block body %}
+<div class="row">
+    <div class="col-sm-12 col-md-6 col-lg-4 col-xl-4">
+        <h2>Gestión de tareas</h2>
+        <div class="card">
+            <div class="card-body">
+                <form action="/registrarTarea/" method="POST" id="tareaForm">{% csrf_token %}
+                    <input type="hidden" id="modoEdicion" name="modoEdicion" value="false">
+                    <div class="form-group">
+                        <input type="text" id="txtCodigo" name="txtCodigo" class="form-control" 
+                               placeholder="Código (6 caracteres)" minlength="6" maxlength="6" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="text" id="txtNombre" name="txtNombre" class="form-control" 
+                               placeholder="Nombre" maxlength="50" required>
+                    </div>
+                    <div class="form-group">
+                        <textarea id="txtDescripcion" name="txtDescripcion" class="form-control" 
+                                  placeholder="Descripción" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-success btn-block text-white" id="btnGuardar">
+                            💾 Guardar
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-block" id="btnCancelar" style="display:none;">
+                            ❌ Cancelar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-sm-12 col-md-6 col-lg-8 col-xl-8">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1>Listado de tareas</h1>
+            <div>
+                <form class="form-inline" id="buscarIdFormTop">
+                    <input class="form-control mr-sm-2" type="text" 
+                           placeholder="Buscar por ID..." id="buscarCodigoTop" maxlength="6"
+                           style="width: 150px;">
+                    <button class="btn btn-outline-primary my-2 my-sm-0" type="button" id="btnBuscarIdTop">
+                        🔍 Buscar ID
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- resultado de la busqueda -->
+        <div id="resultadoBusquedaTop" class="mb-3" style="display: none;">
+            <div class="alert alert-info">
+                <h6>Resultado de búsqueda por ID:</h6>
+                <div id="infoTareaTop"></div>
+            </div>
+        </div>
+        
+        <div class="table-responsive py-2">
+            <table class="table table-striped table-hover">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Descripción</th>
+                        <th>Creado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaTareas">
+                    {% for tarea in tareas %}
+                    <tr>
+                        <td><strong>{{tarea.codigo}}</strong></td>
+                        <td>{{tarea.nombre}}</td>
+                        <td>{{tarea.descripcion}}</td>
+                        <td><small>{{tarea.creado|date:"d/m/Y H:i"}}</small></td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-warning btn-sm editar-btn" 
+                                        data-codigo="{{tarea.codigo}}"
+                                        data-nombre="{{tarea.nombre}}"
+                                        data-descripcion="{{tarea.descripcion}}">
+                                    ✏️ Editar
+                                </button>
+                                <a href="/eliminarTarea/{{tarea.codigo}}/" 
+                                   class="btn btn-danger btn-sm" 
+                                   onclick="return confirm('¿Estás seguro de eliminar la tarea {{tarea.nombre}}?')">
+                                    🗑️ Eliminar
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">
+                            No hay tareas registradas
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+// función para buscar por ID
+document.getElementById('btnBuscarIdTop').addEventListener('click', function() {
+    buscarPorId('buscarCodigoTop', 'resultadoBusquedaTop', 'infoTareaTop');
+});
+
+document.getElementById('buscarCodigoTop').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        buscarPorId('buscarCodigoTop', 'resultadoBusquedaTop', 'infoTareaTop');
+    }
+});
+
+async function buscarPorId(inputId, resultadoId, infoId) {
+    const codigo = document.getElementById(inputId).value.trim();
+    const resultadoDiv = document.getElementById(resultadoId);
+    const infoTarea = document.getElementById(infoId);
+    
+    if (!codigo) {
+        showMessage('warning', '⚠️ Por favor ingresa un código para buscar');
+        return;
+    }
+    
+    // validar formato de código (de 6 caracteres)
+    if (codigo.length !== 6) {
+        showMessage('warning', '⚠️ El código debe tener exactamente 6 caracteres');
+        return;
+    }
+    
+    try {
+        // mostrar loading
+        infoTarea.innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm"></div> Buscando...</div>';
+        resultadoDiv.style.display = 'block';
+        
+        // hacer petición a la API
+        const response = await fetch(`/api/tareas/${codigo}/`);
+        
+        if (response.ok) {
+            const tarea = await response.json();
+            
+            // mostrar información de la tarea
+            infoTarea.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Código:</strong> ${tarea.codigo}</p>
+                        <p><strong>Nombre:</strong> ${tarea.nombre}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Descripción:</strong> ${tarea.descripcion || 'Sin descripción'}</p>
+                        <p><strong>Creado:</strong> ${new Date(tarea.creado).toLocaleString()}</p>
+                    </div>
+                </div>
+            `;
+            
+        } else if (response.status === 404) {
+            infoTarea.innerHTML = '<div class="text-center text-danger">❌ No se encontró ninguna tarea con ese código</div>';
+        } else {
+            infoTarea.innerHTML = '<div class="text-center text-danger">❌ Error en la búsqueda</div>';
+        }
+        
+    } catch (error) {
+        console.error('Error:', error);
+        infoTarea.innerHTML = '<div class="text-center text-danger">❌ Error de conexión</div>';
+    }
+}
+
+// función para cargar datos en el formulario de edición
+document.querySelectorAll('.editar-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const codigo = this.getAttribute('data-codigo');
+        const nombre = this.getAttribute('data-nombre');
+        const descripcion = this.getAttribute('data-descripcion');
+        
+        document.getElementById('txtCodigo').value = codigo;
+        document.getElementById('txtCodigo').readOnly = true;
+        document.getElementById('txtNombre').value = nombre;
+        document.getElementById('txtDescripcion').value = descripcion;
+        document.getElementById('modoEdicion').value = "true";
+        
+        // cambiar texto del botón
+        document.getElementById('btnGuardar').innerHTML = '🔄 Actualizar';
+        document.getElementById('btnGuardar').classList.remove('btn-success');
+        document.getElementById('btnGuardar').classList.add('btn-warning');
+        
+        // mostrar botón cancelar
+        document.getElementById('btnCancelar').style.display = 'block';
+        
+        // scroll suave al formulario
+        document.getElementById('tareaForm').scrollIntoView({ 
+            behavior: 'smooth',
+            block: 'center'
+        });
+    });
+});
+
+// función para cancelar edición
+document.getElementById('btnCancelar').addEventListener('click', function() {
+    resetForm();
+});
+
+// función para resetear el formulario
+function resetForm() {
+    document.getElementById('tareaForm').reset();
+    document.getElementById('txtCodigo').readOnly = false;
+    document.getElementById('modoEdicion').value = "false";
+    document.getElementById('btnGuardar').innerHTML = '💾 Guardar';
+    document.getElementById('btnGuardar').classList.remove('btn-warning');
+    document.getElementById('btnGuardar').classList.add('btn-success');
+    document.getElementById('btnCancelar').style.display = 'none';
+}
+
+// resetear formulario cuando se envía
+document.getElementById('tareaForm').addEventListener('submit', function() {
+    setTimeout(resetForm, 1000);
+});
+
+// verificar si hay parámetros de éxito/error en la URL
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('success')) {
+        showMessage('success', '✅ Operación realizada con éxito');
+    }
+    if (urlParams.has('error')) {
+        const message = urlParams.get('message') || 'Error en la operación';
+        showMessage('danger', `❌ ${message}`);
+    }
+    
+    // si estamos en modo edición desde recarga
+    if (document.getElementById('modoEdicion').value === "true") {
+        document.getElementById('btnGuardar').innerHTML = '🔄 Actualizar';
+        document.getElementById('btnGuardar').classList.remove('btn-success');
+        document.getElementById('btnGuardar').classList.add('btn-warning');
+        document.getElementById('btnCancelar').style.display = 'block';
+    }
+});
+</script>
+{% endblock %}
